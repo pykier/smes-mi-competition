@@ -1,0 +1,22 @@
+{
+  "release_root": "D:\\python_code\\BCI_competition_2026\\初赛\\preliminary_code\\pyds",
+  "pyd_app_root": "D:\\python_code\\BCI_competition_2026\\初赛\\preliminary_code\\pyds\\pyd_app",
+  "included_directories": [
+    "pyd_app",
+    "debug",
+    "proceed",
+    "tests"
+  ],
+  "included_files": [
+    "README.md",
+    "killport.bat",
+    "startup.bat使用说明 .txt",
+    "requirements.txt",
+    "run_tests.bat",
+    "startup.bat"
+  ],
+  "build_manifest_relative_path": "pyd_app/build_manifest.json",
+  "compile_target_count": 548,
+  "built_extension_count": 548,
+  "retained_python_source_count": 12
+}

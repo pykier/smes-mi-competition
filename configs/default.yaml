@@ -1,0 +1,36 @@
+project:
+  name: smes-mi-competition
+  random_seed: 42
+
+paths:
+  raw_data_dir: data/raw
+  interim_data_dir: data/interim
+  processed_data_dir: data/processed
+  output_dir: outputs
+
+competition_constraints:
+  max_trial_window_seconds: 4.0
+  max_inference_time_seconds: 1.0
+  max_channels: 8
+  max_model_size_mb: 150
+
+preprocess:
+  trial_window_seconds: [0.0, 4.0]
+  bandpass_hz: [8.0, 30.0]
+
+channels:
+  selected: []
+  max_channels: 8
+
+features:
+  method: placeholder
+
+model:
+  name: placeholder
+  save_path: outputs/model.joblib
+
+evaluation:
+  metrics:
+    - accuracy
+    - confusion_matrix
+    - inference_time

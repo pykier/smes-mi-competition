@@ -1,0 +1,53 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+.venv/
+venv/
+env/
+ENV/
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Data: do not upload competition data or intermediate arrays
+data/raw/
+data/interim/
+data/processed/
+
+# Outputs
+outputs/*
+!outputs/.gitkeep
+
+# Model and large binary files
+*.pkl
+*.joblib
+*.npy
+*.npz
+*.mat
+*.cnt
+*.edf
+*.fif
+*.set
+*.vhdr
+*.eeg
+*.bdf
+*.h5
+*.pt
+*.pth
+*.onnx
+*.ckpt
+
+# Logs
+*.log
+logs/
+
+# Notebooks checkpoints
+.ipynb_checkpoints/

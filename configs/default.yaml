@@ -3,7 +3,7 @@ project:
   random_seed: 42
 
 paths:
-  raw_data_dir: data/raw
+  raw_data_dir: data/raw/feel_MI_2026
   interim_data_dir: data/interim
   processed_data_dir: data/processed
   output_dir: outputs
@@ -14,20 +14,46 @@ competition_constraints:
   max_channels: 8
   max_model_size_mb: 150
 
+data:
+  file_glob: "**/*.dat"
+  meta_suffix: "_meta"
+  sampling_rate_hz: 1000
+  n_channels: 64
+  dat_dtype: float32
+  dat_layout: sample_major
+  selected_channel_indices: [0, 1, 2, 3, 4, 5, 6, 7]
+  label_mode: filename
+  label_patterns:
+    mi: ["_mi_", "_vmi_", "mi_run", "vmi_run"]
+    me: ["_me_", "_vme_", "me_run", "vme_run"]
+    rest: ["rest", "idle", "baseline"]
+  max_files: 4
+  max_windows_per_file: 20
+
 preprocess:
-  trial_window_seconds: [0.0, 4.0]
+  trial_window_seconds: 4.0
+  stride_seconds: 4.0
+  target_sampling_rate_hz: 250
   bandpass_hz: [8.0, 30.0]
-
-channels:
-  selected: []
-  max_channels: 8
-
-features:
-  method: placeholder
+  standardize: true
 
 model:
-  name: placeholder
-  save_path: outputs/model.joblib
+  name: eegnet
+  save_path: outputs/eegnet_model.pt
+  F1: 8
+  D: 2
+  F2: 16
+  kernel_length: 64
+  dropout: 0.5
+
+training:
+  epochs: 5
+  batch_size: 16
+  learning_rate: 0.001
+  weight_decay: 0.0001
+  validation_ratio: 0.2
+  num_workers: 0
+  device: auto
 
 evaluation:
   metrics:

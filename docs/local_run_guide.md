@@ -1,204 +1,218 @@
 # Local Run Guide
 
-本指南说明如何在本地 VS Code 中运行当前 EEGNet 框架。
+本指南对应当前“触发器切 trial + 四个正式二分类任务 + EEGNet + model_artifacts 导出”版本。
 
-## 1. 克隆仓库
+## 1. 使用 ZIP 版本更新代码
 
-在 Windows CMD 或 PowerShell 中执行：
+如果 GitHub 网络不能 `git pull`，直接重新下载 ZIP，解压后覆盖旧项目代码即可。注意不要删除你的虚拟环境和本地数据。
 
-```cmd
-D:
-cd D:\
-git clone https://github.com/pykier/smes-mi-competition.git
-cd smes-mi-competition
-```
-
-如果你已经克隆过，进入项目后更新代码：
-
-```cmd
-git pull
-```
-
-## 2. 放置本地数据
-
-不要把原始数据上传 GitHub。请在本地保持如下结构：
+建议路径保持为：
 
 ```text
-smes-mi-competition/
-└── data/
-    └── raw/
-        └── feel_MI_2026/
-            ├── sub_1/
-            │   ├── session1/
-            │   │   ├── xxx_vme_run1.dat
-            │   │   ├── xxx_vme_run1_meta
-            │   │   ├── xxx_vmi_run1.dat
-            │   │   └── xxx_vmi_run1_meta
-            │   └── session2/
-            ├── sub_2/
-            └── ...
+D:\bisai_all\feel_MI_2026\github\smes-mi-competition
 ```
 
-也就是说，把你的整个 `feel_MI_2026` 文件夹复制到：
+项目根目录下应能看到：
 
 ```text
-D:\smes-mi-competition\data\raw\
+configs
+scripts
+src
+submission
+requirements.txt
+README.md
 ```
 
-## 3. 创建 Python 环境
+## 2. 激活已有环境
 
-推荐 Python 3.10 或 3.11。
+你已经创建过 `.venv`，以后只需进入项目根目录后激活：
 
-```cmd
-python -m venv .venv
+```powershell
+cd D:\bisai_all\feel_MI_2026\github\smes-mi-competition
 .venv\Scripts\activate
-python -m pip install --upgrade pip
-pip install -r requirements.txt
 ```
 
-如果安装 PyTorch 很慢或失败，可以先去 PyTorch 官网按你的 CUDA/CPU 情况复制安装命令。只用 CPU 也可以先跑通框架。
+确认当前 Python 来自项目环境：
 
-## 4. 在 VS Code 中打开项目
-
-```cmd
-code .
+```powershell
+python -c "import sys; print(sys.executable)"
 ```
 
-然后在 VS Code 右下角选择解释器：
+应输出：
 
 ```text
-.venv\Scripts\python.exe
+D:\bisai_all\feel_MI_2026\github\smes-mi-competition\.venv\Scripts\python.exe
 ```
 
-## 5. 先做无数据 smoke test
+若 ZIP 更新后依赖有变化，执行：
 
-这个步骤不依赖真实数据，只检查 EEGNet 和 PyTorch 是否能正常前向、反向传播。
-
-```cmd
-python scripts/smoke_test.py
+```powershell
+python -m pip install -r requirements.txt
 ```
 
-看到类似输出即可：
+## 3. 修改数据路径
 
-```text
-Smoke test passed.
-logits shape: (8, 2)
-loss: ...
+打开：
+
+```powershell
+notepad configs\default.yaml
 ```
 
-## 6. 检查本地数据是否能被扫描
-
-```cmd
-python scripts/inspect_data.py --config configs/default.yaml
-```
-
-它会输出：
-
-- 扫描到多少个 `.dat` 文件。
-- 根据文件名推断出的标签。
-- 每个 `.dat` 的大小。
-- 按 `n_channels=64` 和 `float32` 推算是否能整除。
-
-如果 `remainder` 不是 0，说明当前 `configs/default.yaml` 中的 `dat_dtype` 或 `n_channels` 可能不对，需要调整。
-
-## 7. 训练 EEGNet 基线
-
-默认配置为了先跑通，只读取前 4 个 `.dat` 文件，每个文件最多取 20 个 4 秒窗口。
-
-```cmd
-python scripts/train_baseline.py --config configs/default.yaml
-```
-
-训练结束后会生成：
-
-```text
-outputs/eegnet_model.pt
-outputs/training_result.json
-```
-
-## 8. 单个 DAT 文件推理
-
-示例：
-
-```cmd
-python scripts/run_inference.py --model outputs/eegnet_model.pt --dat data/raw/feel_MI_2026/sub_1/session1/sub015_sub_1_vmi_run1.dat
-```
-
-程序会输出该连续文件切成多个窗口后的预测标签。
-
-## 9. 当前框架的重要说明
-
-当前版本是“框架优先、跑通优先”的 EEGNet baseline：
-
-1. 标签暂时从文件名推断。
-   - `vmi` 或 `mi` 会被归为 `mi`。
-   - `vme` 或 `me` 会被归为 `me`。
-   - `rest`、`idle`、`baseline` 会被归为 `rest`。
-2. 如果官方真实标签在 `_meta` 或事件标记中，后续需要改 `src/data_io.py`，用事件标记切 trial。
-3. 当前默认只选前 8 个通道，满足比赛通道数限制，但不代表这是最优通道选择。
-4. 当前默认 1000 Hz 读取，8-30 Hz 滤波，降采样到 250 Hz，再切 4 秒窗口。
-5. 当前 EEGNet 只作为基线模型，不应直接视为最终高分方案。
-
-## 10. 常见问题
-
-### 问题 1：Raw data directory not found
-
-检查 `configs/default.yaml`：
+把：
 
 ```yaml
 paths:
   raw_data_dir: data/raw/feel_MI_2026
 ```
 
-确认本地确实存在：
+改成你的本地数据根目录：
 
-```text
-smes-mi-competition/data/raw/feel_MI_2026
+```yaml
+paths:
+  raw_data_dir: D:/bisai_all/feel_MI_2026
 ```
 
-### 问题 2：No DAT files matched
+你的数据结构应类似：
 
-确认 `.dat` 文件确实在 `feel_MI_2026` 子目录下，而不是多套了一层目录。
+```text
+D:\bisai_all\feel_MI_2026\sub_1\session1\sub015_sub_1_vme_run1.dat
+D:\bisai_all\feel_MI_2026\sub_1\session1\sub015_sub_1_vme_run1_meta.txt
+D:\bisai_all\feel_MI_2026\sub_1\session1\sub015_sub_1_vmi_run1.dat
+D:\bisai_all\feel_MI_2026\sub_1\session1\sub015_sub_1_vmi_run1_meta.txt
+```
 
-### 问题 3：DAT 文件不能 reshape
+## 4. 检查数据格式和 trigger
 
-优先运行：
+执行：
 
-```cmd
+```powershell
 python scripts/inspect_data.py --config configs/default.yaml
 ```
 
-然后根据输出调整：
+当前正确格式应满足：
 
-```yaml
-data:
-  n_channels: 64
-  dat_dtype: float32
-  dat_layout: sample_major
+```text
+total_channels = 69
+eeg_channels = 68
+trigger last
+sample_major
+float32
+remainder = 0
 ```
 
-可能需要尝试：
+输出里还会显示第一份文件的 trigger 统计，例如 1、2、3、101、241 等事件计数。
 
-```yaml
-dat_dtype: int16
+如果你想单独调试某一个 run 的 trigger 切分：
+
+```powershell
+python scripts/debug_trials.py --config configs/default.yaml --file D:/bisai_all/feel_MI_2026/sub_1/session1/sub015_sub_1_vme_run1.dat
 ```
 
-或：
+理论上每个 run 应接近 30 个 trial。若提取 trial 数异常，应先修正 trigger 解析，不要直接训练。
 
-```yaml
-dat_layout: channel_major
+## 5. 训练四个正式任务模型
+
+执行：
+
+```powershell
+python scripts/train_baseline.py --config configs/default.yaml
 ```
 
-### 问题 4：训练很慢
+当前会训练四个二分类任务：
 
-先降低：
+```text
+vme_left_vs_rest
+vme_right_vs_rest
+vmi_left_vs_rest
+vmi_right_vs_rest
+```
+
+标签定义：
+
+```text
+0 = rest
+1 = target movement / imagery
+```
+
+训练输出：
+
+```text
+outputs/training_result.json
+model_artifacts/artifact_config.json
+model_artifacts/eegnet_vme_left_vs_rest.pt
+model_artifacts/eegnet_vme_right_vs_rest.pt
+model_artifacts/eegnet_vmi_left_vs_rest.pt
+model_artifacts/eegnet_vmi_right_vs_rest.pt
+```
+
+其中 `outputs/training_result.json` 是本地验证结果，不是平台正式分数。
+
+## 6. 本地验证的意义
+
+当前默认用：
 
 ```yaml
-data:
-  max_files: 2
-  max_windows_per_file: 5
 training:
-  epochs: 2
+  validation_mode: leave_subjects_out
+  validation_subjects: ["sub_9", "sub_10", "sub_11"]
 ```
 
-确认流程无误后再逐步增大。
+即训练时留出若干被试做验证，比随机划分更接近跨被试比赛设置。平台正式分数仍以隐藏被试在线评测为准。
+
+## 7. 生成提交压缩包
+
+训练完成后执行：
+
+```powershell
+python scripts/package_submission.py
+```
+
+会生成：
+
+```text
+outputs/smes_mi_submission.tar.gz
+```
+
+压缩包内包含：
+
+```text
+src/
+submission/
+model_artifacts/
+requirements.txt
+README.md
+```
+
+如果官方平台要求使用它提供的完整框架，则应把：
+
+```text
+submission/algorithm_impl.py
+model_artifacts/
+src/
+```
+
+复制进官方框架对应位置，再运行官方 `run_tests.bat` 或 `debug_pipeline.py`。平台最终提交一般是官方框架的 `.tar.gz` 包，而不是原始训练数据。
+
+## 8. 通道和评分约束
+
+当前默认使用 8 个运动区通道：
+
+```text
+C3, C4, CZ, FC3, FC4, CP3, CP4, FCZ
+```
+
+满足比赛通道数不超过 8 的要求。当前默认不申请校准 trial：
+
+```text
+calibration_trials_per_class = 0
+```
+
+模型为小型 EEGNet，通常远小于 150 MB，单 trial 推理时间也应小于 1 秒。
+
+## 9. 后续优化方向
+
+1. 先确认 trigger 切 trial 是否完全正确。
+2. 比较不同通道组合：4、6、8 通道。
+3. 比较 EEGNet 与 FBCSP+LDA、FBCSP+SVM、Riemannian 方法。
+4. 按 subject 做更严格的 leave-one-subject-out 验证。
+5. 再将最优模型封装到 `submission/algorithm_impl.py`。

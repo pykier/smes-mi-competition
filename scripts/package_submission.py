@@ -1,7 +1,8 @@
-"""Package trained code and model artifacts into a tar.gz archive.
+"""Package trained code and chosen model artifacts into a tar.gz archive.
 
-Run after training:
-    python scripts/package_submission.py
+Examples:
+    python scripts/package_submission.py --artifacts model_artifacts_fbcsp_lda --out outputs/fbcsp_lda_submission.tar.gz
+    python scripts/package_submission.py --artifacts model_artifacts_riemann_lr --out outputs/riemann_lr_submission.tar.gz
 """
 
 from __future__ import annotations
@@ -23,13 +24,14 @@ def copytree_clean(src: Path, dst: Path) -> None:
 
 def main() -> None:
     parser = argparse.ArgumentParser()
+    parser.add_argument("--artifacts", default="model_artifacts", help="Artifact directory to package.")
     parser.add_argument("--out", default="outputs/smes_mi_submission.tar.gz")
     parser.add_argument("--workdir", default="outputs/submission_package")
     args = parser.parse_args()
 
-    artifacts_dir = ROOT / "model_artifacts"
+    artifacts_dir = ROOT / args.artifacts
     if not (artifacts_dir / "artifact_config.json").exists():
-        raise FileNotFoundError("model_artifacts/artifact_config.json not found. Run training first.")
+        raise FileNotFoundError(f"{artifacts_dir / 'artifact_config.json'} not found. Run training first.")
 
     workdir = ROOT / args.workdir
     if workdir.exists():
@@ -51,7 +53,7 @@ def main() -> None:
             tar.add(item, arcname=item.relative_to(workdir))
 
     print(f"Created submission archive: {out_path}")
-    print("Archive contents include src/, submission/, model_artifacts/, requirements.txt, README.md")
+    print(f"Packaged artifacts from: {artifacts_dir}")
 
 
 if __name__ == "__main__":

@@ -3,43 +3,57 @@ project:
   random_seed: 42
 
 paths:
+  # 本地运行时建议改成绝对路径：D:/bisai_all/feel_MI_2026
   raw_data_dir: data/raw/feel_MI_2026
   interim_data_dir: data/interim
   processed_data_dir: data/processed
   output_dir: outputs
+  model_artifacts_dir: model_artifacts
+  submission_dir: submission
 
 competition_constraints:
   max_trial_window_seconds: 4.0
   max_inference_time_seconds: 1.0
   max_channels: 8
   max_model_size_mb: 150
+  calibration_trials_per_class: 0
 
 data:
   file_glob: "**/*.dat"
-  meta_suffix: "_meta"
+  meta_suffix: "_meta.txt"
   sampling_rate_hz: 1000
-  n_channels: 64
+  total_channels: 69
+  eeg_channels: 68
+  trigger_channel_name: TRIGGER
   dat_dtype: float32
   dat_layout: sample_major
-  selected_channel_indices: [0, 1, 2, 3, 4, 5, 6, 7]
-  label_mode: filename
-  label_patterns:
-    mi: ["_mi_", "_vmi_", "mi_run", "vmi_run"]
-    me: ["_me_", "_vme_", "me_run", "vme_run"]
-    rest: ["rest", "idle", "baseline"]
-  max_files: 4
-  max_windows_per_file: 20
+  trigger_position: last
+  label_mode: trigger
+  task_start_offset_seconds: 7.0
+  task_window_seconds: 4.0
+  event_values:
+    left: 1
+    right: 2
+    rest: 3
+    trial_start: 101
+    trial_end: 241
+    block_start: 242
+    block_end: 243
+  run_patterns:
+    vme: ["_vme_"]
+    vmi: ["_vmi_"]
+
+channels:
+  selected_labels: ["C3", "C4", "CZ", "FC3", "FC4", "CP3", "CP4", "FCZ"]
+  max_channels: 8
 
 preprocess:
-  trial_window_seconds: 4.0
-  stride_seconds: 4.0
   target_sampling_rate_hz: 250
   bandpass_hz: [8.0, 30.0]
   standardize: true
 
 model:
   name: eegnet
-  save_path: outputs/eegnet_model.pt
   F1: 8
   D: 2
   F2: 16
@@ -47,13 +61,35 @@ model:
   dropout: 0.5
 
 training:
-  epochs: 5
-  batch_size: 16
+  epochs: 30
+  batch_size: 32
   learning_rate: 0.001
   weight_decay: 0.0001
+  validation_mode: leave_subjects_out
+  validation_subjects: ["sub_9", "sub_10", "sub_11"]
   validation_ratio: 0.2
   num_workers: 0
   device: auto
+  max_files: null
+  max_trials_per_task: null
+
+tasks:
+  vme_left_vs_rest:
+    run_type: vme
+    positive_label: left
+    negative_label: rest
+  vme_right_vs_rest:
+    run_type: vme
+    positive_label: right
+    negative_label: rest
+  vmi_left_vs_rest:
+    run_type: vmi
+    positive_label: left
+    negative_label: rest
+  vmi_right_vs_rest:
+    run_type: vmi
+    positive_label: right
+    negative_label: rest
 
 evaluation:
   metrics:

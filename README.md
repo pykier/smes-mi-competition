@@ -2,13 +2,9 @@
 
 本仓库用于感觉肌肉电刺激辅助运动想象（SMES-MI）算法比赛的代码、数据组织与实验管理。
 
-当前阶段只建立项目骨架，不固定具体算法路线。后续可在同一框架中逐步加入 FBCSP、CSP、Riemannian、LDA/SVM、轻量深度模型或集成策略。
+当前版本已经加入一个可运行的 EEGNet baseline。目标不是追求最终最高分，而是先完成完整工程链路：本地数据扫描、DAT 文件读取、预处理、4 秒窗口切分、EEGNet 训练、模型保存、单文件推理与结果记录。
 
-## 任务概述
-
-比赛任务面向上肢运动想象脑电分类。数据来自多导联 EEG 采集系统，任务类别通常包括左手、右手和静息状态。项目目标是在比赛约束下完成稳定、快速、可复现的离线训练与在线/离线推理流程。
-
-核心约束需在后续算法设计中持续满足：
+## 任务约束
 
 - 单试次有效分析窗口不超过 4 s。
 - 单次推理时间需小于 1 s。
@@ -21,47 +17,102 @@
 
 ```text
 smes-mi-competition/
-├── configs/              # 配置文件
-├── data/                 # 数据目录，本仓库默认不上传真实数据
-├── docs/                 # 比赛规则整理、设计说明、实验记录
-├── outputs/              # 模型、结果、日志输出，默认不纳入 Git
-├── scripts/              # 可直接运行的训练/推理脚本
-├── src/                  # 核心代码模块
-└── tests/                # 简单测试或接口检查
+├── configs/
+│   └── default.yaml
+├── data/
+│   ├── raw/
+│   ├── interim/
+│   └── processed/
+├── docs/
+│   ├── competition_notes.md
+│   ├── design_plan.md
+│   └── local_run_guide.md
+├── outputs/
+├── scripts/
+│   ├── inspect_data.py
+│   ├── smoke_test.py
+│   ├── train_baseline.py
+│   └── run_inference.py
+└── src/
+    ├── config.py
+    ├── data_io.py
+    ├── dataset.py
+    ├── preprocess.py
+    ├── eegnet.py
+    ├── train.py
+    ├── predict.py
+    └── evaluate.py
 ```
 
-## 数据放置建议
+## 本地数据放置
 
-后续请将比赛数据放入：
+真实比赛数据不要上传 GitHub。请在本地放成：
 
 ```text
-data/raw/
+data/raw/feel_MI_2026/sub_1/session1/*.dat
+data/raw/feel_MI_2026/sub_1/session1/*_meta
+data/raw/feel_MI_2026/sub_1/session2/*.dat
+...
 ```
 
-建议保持原始数据不改动，所有中间文件写入：
+如果你的数据目录不同，修改：
+
+```yaml
+paths:
+  raw_data_dir: data/raw/feel_MI_2026
+```
+
+## 快速运行
+
+安装依赖：
+
+```cmd
+python -m venv .venv
+.venv\Scripts\activate
+python -m pip install --upgrade pip
+pip install -r requirements.txt
+```
+
+先做无数据 smoke test：
+
+```cmd
+python scripts/smoke_test.py
+```
+
+检查本地数据：
+
+```cmd
+python scripts/inspect_data.py --config configs/default.yaml
+```
+
+训练 EEGNet baseline：
+
+```cmd
+python scripts/train_baseline.py --config configs/default.yaml
+```
+
+对单个 DAT 文件推理：
+
+```cmd
+python scripts/run_inference.py --model outputs/eegnet_model.pt --dat data/raw/feel_MI_2026/sub_1/session1/sub015_sub_1_vmi_run1.dat
+```
+
+更详细的 VS Code 本地运行步骤见：
 
 ```text
-data/interim/
-data/processed/
+docs/local_run_guide.md
 ```
 
-这些目录已在 `.gitignore` 中屏蔽，避免误传比赛数据和大文件。
+## 当前实现说明
 
-## 后续开发顺序
+当前代码为了优先跑通，采用以下假设：
 
-1. 明确数据格式与标签结构。
-2. 编写 `src/data_io.py`，完成数据读取与 trial 切分。
-3. 编写 `src/preprocess.py`，完成滤波、降采样、通道选择等处理。
-4. 编写 `src/features.py`，完成特征提取。
-5. 编写 `src/model.py`，封装分类器。
-6. 编写 `scripts/train_baseline.py` 和 `scripts/run_inference.py`，形成可复现实验入口。
-7. 根据验证结果逐步替换或增强算法。
+1. `.dat` 为二进制连续 EEG 文件。
+2. 默认 64 通道，1000 Hz。
+3. 默认数据类型为 `float32`，排列方式为 `sample_major`。
+4. 默认只取前 8 个通道。
+5. 默认从文件名推断标签：`vmi/mi` 为 `mi`，`vme/me` 为 `me`，`rest/idle/baseline` 为 `rest`。
+6. 默认 8-30 Hz 滤波，降采样至 250 Hz，切成 4 秒窗口。
+7. 默认只读取前 4 个文件、每文件最多 20 个窗口，便于先验证流程。
 
-## 当前状态
-
-- [x] 初始化项目骨架
-- [ ] 放入比赛数据
-- [ ] 完成数据读取
-- [ ] 完成基线算法
-- [ ] 完成评估脚本
-- [ ] 完成最终提交格式
+如果真实标签在 `_meta` 或事件标记中，后续需要把 `src/data_io.py` 中的文件名标签逻辑替换为事件标签解析逻辑。

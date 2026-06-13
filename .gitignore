@@ -18,9 +18,13 @@ ENV/
 Thumbs.db
 
 # Data: do not upload competition data or intermediate arrays
-data/raw/
-data/interim/
-data/processed/
+# Keep the directory placeholders, ignore the real data files.
+data/raw/*
+!data/raw/.gitkeep
+data/interim/*
+!data/interim/.gitkeep
+data/processed/*
+!data/processed/.gitkeep
 
 # Outputs
 outputs/*
